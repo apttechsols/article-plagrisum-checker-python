@@ -1,0 +1,1 @@
+It is library which help to detect plagrisum in a article or text

@@ -1,0 +1,102 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+
+try:
+    # create a new Firefox session
+    browser = webdriver.Firefox(executable_path='C:/Users/arpit/Anaconda3/Lib/site-packages/selenium/webdriver/firefox/geckodriver.exe')
+    #browser.implicitly_wait(30)
+    #browser.maximize_window()
+
+    SearchData = 'How are you ask ok i am fine'
+
+    # Search on google
+    browser.get(f"https://www.google.com/search?q={SearchData}")
+except:
+    print('Error : An error occur during search on google')
+    browser.quit()
+
+SearchResults = browser.find_elements_by_css_selector('div.g')
+Results = []
+
+for i in range(0, len(SearchResults)-1):
+    try:
+        heading = SearchResults[i].find_element_by_class_name("LC20lb")
+        description = SearchResults[i].find_elements_by_css_selector('div > div.s > div > span')
+        url = SearchResults[i].find_element_by_tag_name("a").get_attribute("href")
+        heading = heading.text
+        if len(description) > 0:
+            description = description[0].text
+        else:
+            description = ''
+        if(heading != '' and url != ''):
+            Results.append({'heading':' '+' '.join(heading.translate ({ord(c): " " for c in """!@#$%^&*()[]{};:,./<>?\|`~-=_+“"'"""}).split())+' ','description':description,'url':url})
+    except:
+        continue
+if len(Results) > 0:
+    print('Results stored successfully')
+else:
+    print('No result found for this serach')
+browser.quit()
+
+def findOccurrencesSubString(string, word):
+    return [i for i in range(len(string)) if string.startswith(word, i)]
+
+SearchDataSplit = ' '.join(SearchData.translate ({ord(c): " " for c in """!@#$%^&*()[]{};:,./<>?\|`~-=_+“"'"""}).split()).split(' ')
+MatchedHeading = []
+for result in Results:
+    TmpMatchPosList = []
+    for SearchDataSplitTmp in SearchDataSplit:
+        TmpPositions = []
+        for findOccurrencesSubStringData in findOccurrencesSubString(result['heading'].lower(),' '+SearchDataSplitTmp.lower()+' '):
+            TmpPositions.append([findOccurrencesSubStringData+1,findOccurrencesSubStringData+len(' '+SearchDataSplitTmp.lower()+' ')-1])
+        TmpMatchPosList.append({'word':SearchDataSplitTmp,'positions':TmpPositions})
+    
+    MatchedHeading.append({'url':result['url'],'matchpos':TmpMatchPosList,'heading':result['heading']})
+print('Task completed successfully')
+print(MatchedHeading)
+
+for MatchedHeadingData in MatchedHeading:
+    i = 1
+    MatchedWordPos = []
+    for MatchedHeadingData_1 in MatchedHeadingData['matchpos']:
+        for matchpos in MatchedHeadingData_1['positions']:
+            for j in range(i, len(MatchedHeadingData['matchpos'])):
+                if(len(MatchedHeadingData['matchpos'][j]['positions']) == 0):
+                    break
+                for MatchedHeadingData_J in MatchedHeadingData['matchpos'][j]['positions']:
+                    if(matchpos[1]+1 == MatchedHeadingData_J[0]):
+                        MatchedWordPos.append([matchpos[0],MatchedHeadingData_J[1]])
+                    else:
+                        break
+                    
+        i += 1
+    TmpStart = -2
+    TmpEnd = -2
+    MatchedWordPosList = []
+    
+    if len(MatchedWordPos) > 1:
+        for i in range(len(MatchedWordPos)-1):
+            if(MatchedWordPos[i][1] >= MatchedWordPos[i+1][0]):
+                if TmpStart == -2:
+                    TmpStart = MatchedWordPos[i][0]
+                TmpEnd = MatchedWordPos[i+1][1]
+                IsMatched = True
+            else:
+                MatchedWordPosList.append([TmpStart,TmpEnd])
+                TmpStart = -2
+                TmpEnd = -2
+                IsMatched = False
+        if(IsMatched == True):
+            MatchedWordPosList.append([TmpStart,TmpEnd])
+    elif len(MatchedWordPos) == 1:
+        MatchedWordPosList.append([MatchedWordPos[0][0],MatchedWordPos[0][1]])
+        
+    print(MatchedWordPosList)
+    print(MatchedHeadingData['heading'])
+    if len(MatchedWordPosList) > 0:
+        print('String : "{}" and ratio : {} %'.format(MatchedHeadingData['heading'][MatchedWordPosList[0][0]:MatchedWordPosList[0][1]],len(''.join(MatchedHeadingData['heading'][MatchedWordPosList[0][0]:MatchedWordPosList[0][1]].split()))*100/len(''.join(SearchData.split()))))
+    else:
+        print('String : No match found and ratio : 0.0 %')
+    print('')
+print('Done')
